@@ -15,31 +15,33 @@ let validGames: number[] = [];
 let gamesPowers: number[] = [];
 
 for (const line of input) {
-  let [gameNumber, drawLine] = line.split(":");
-  let processedGameNumber = +gameNumber.trim().split(" ")[1];
+  const gameNumber = +line.match(/Game ([0-9]+)/)![1];
 
   let gameValidity = true;
   let gameRequirement: DrawSet = { red: 0, green: 0, blue: 0 };
 
-  let draws = drawLine.trim().split(";");
-  draws.forEach((draw) => {
-    let splitDraw = draw.trim().split(",");
+  line
+    .split(":")[1]
+    .trim()
+    .split(";")
+    .forEach((draw) => {
+      let splitDraw = draw.trim().split(",");
 
-    for (const colorDraw of splitDraw) {
-      let [count, color] = colorDraw.trim().split(" ");
+      for (const colorDraw of splitDraw) {
+        let [count, color] = colorDraw.trim().split(" ");
 
-      if (+count > bagContent[color as DrawSetKey]) {
-        gameValidity = false;
+        if (+count > bagContent[color as DrawSetKey]) {
+          gameValidity = false;
+        }
+
+        if (gameRequirement[color as DrawSetKey] < +count) {
+          gameRequirement[color as DrawSetKey] = +count;
+        }
       }
-
-      if (gameRequirement[color as DrawSetKey] < +count) {
-        gameRequirement[color as DrawSetKey] = +count;
-      }
-    }
-  });
+    });
 
   if (gameValidity) {
-    validGames.push(processedGameNumber);
+    validGames.push(gameNumber);
   }
 
   gamesPowers.push(
