@@ -38,8 +38,37 @@ const steps = [
   "temperature-to-humidity",
   "humidity-to-location",
 ];
-let currentStep = -1;
 
+// PART 1
+let currentStep = -1;
+for (const line of input) {
+  if (line.startsWith(steps[currentStep + 1])) {
+    currentStep++;
+
+    seeds = modifiedSeeds; // save modified seed
+    modifiedSeeds = seeds.map((seed) => seed); // and copy the array again to save the new ones
+
+    continue;
+  }
+
+  // else process the mapping
+  // line: destination range start, source range start, range length
+  const [startDestinationRange, startSourceRange, rangeLength] = line
+    .split(/\s+/)
+    .map((n) => +n);
+
+  seeds.forEach((seed, index) => {
+    if (seed >= startSourceRange && seed < startSourceRange + rangeLength) {
+      modifiedSeeds[index] = seed + (startDestinationRange - startSourceRange);
+    }
+  });
+}
+
+seeds = modifiedSeeds; // save modified seed
+console.log(`Day 5 part 1 : min location = ${Math.min(...seeds)}`);
+
+// PART 2
+currentStep = -1;
 for (const line of input) {
   if (line.startsWith(steps[currentStep + 1])) {
     currentStep++;
@@ -117,33 +146,3 @@ console.log(
     ...seedsRanges.map((range) => range.start)
   )}`
 );
-
-/*
-for (const line of input) {
-  if (line.startsWith(steps[currentStep + 1])) {
-    currentStep++;
-
-    seeds = modifiedSeeds; // save modified seed
-    modifiedSeeds = seeds.map((seed) => seed); // and copy the array again to save the new ones
-
-    continue;
-  }
-
-  // else process the mapping
-  // line: destination range start, source range start, range length
-  const [startDestinationRange, startSourceRange, rangeLength] = line
-    .split(/\s+/)
-    .map((n) => +n);
-
-  seeds.forEach((seed, index) => {
-    if (seed >= startSourceRange && seed < startSourceRange + rangeLength) {
-      modifiedSeeds[index] = seed + (startDestinationRange - startSourceRange);
-    }
-  });
-}
-
-seeds = modifiedSeeds; // save modified seed
-console.log(`Day 5 part 1 : min location = ${Math.min(...seeds)}`);
-rangeSeeds = modifiedRangeSeeds; // save modified seed
-console.log(`Day 5 part 2 : new min location = ${Math.min(...rangeSeeds)}`);
-*/
