@@ -2,13 +2,26 @@ import * as fs from "fs";
 
 const HAND_LENGTH = 5;
 
-// A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, or 2
+enum Part {
+  ONE,
+  TWO,
+}
+
+// Part 1 cards values : A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, 2
 const cardValues: Map<string, number> = new Map([
   ["A", 14],
   ["K", 13],
   ["Q", 12],
   ["J", 11],
   ["T", 10],
+]);
+// Part 2 cards values : A, K, Q, T, 9, 8, 7, 6, 5, 4, 3, 2, J
+const newCardValues: Map<string, number> = new Map([
+  ["A", 13],
+  ["K", 12],
+  ["Q", 11],
+  ["T", 10],
+  ["J", 1],
 ]);
 
 enum HandType {
@@ -28,22 +41,44 @@ class Hand {
 
   type: HandType | undefined;
   cardsDistribution: Map<string, number> = new Map();
+  cardsDistributionJoker: Map<string, number> = new Map();
 
   constructor({ cards, bid }: { cards: string[]; bid: number }) {
     this.cards = cards;
     this.bid = bid;
     this.rank = 0;
 
-    this.defineHandType();
+    this.defineHandType(Part.ONE);
   }
 
-  defineHandType(): void {
+  defineCardsDistribution(part: Part): void {
+    this.cardsDistribution = new Map();
+
     this.cards.forEach((card) => {
       this.cardsDistribution.set(
         card,
         (this.cardsDistribution.get(card) ?? 0) + 1
       );
     });
+
+    if (part === Part.TWO) {
+      if (this.cardsDistribution.has("J") && this.cardsDistribution.size > 1) {
+        const jokersValue = this.cardsDistribution.get("J")!;
+
+        const [maxKey, maxValue] = [...this.cardsDistribution.entries()]
+          .filter(([key, _]) => key !== "J")
+          .reduce((max, distribution) => {
+            return distribution[1] > max[1] ? distribution : max;
+          });
+
+        this.cardsDistribution.set(maxKey, maxValue + jokersValue);
+        this.cardsDistribution.delete("J");
+      }
+    }
+  }
+
+  defineHandType(part: Part): void {
+    this.defineCardsDistribution(part);
 
     let cardsDistributionValues = [...this.cardsDistribution.values()].sort();
     switch (this.cardsDistribution.size) {
@@ -75,7 +110,14 @@ class Hand {
     }
   }
 
-  compareHand(otherHand: Hand): number {
+  compareCards(cardA: string, cardB: string, part: Part): number {
+    let usedCardValues = part === Part.ONE ? cardValues : newCardValues;
+    const cardAValue = usedCardValues.get(cardA) ?? +cardA;
+    const cardBValue = usedCardValues.get(cardB) ?? +cardB;
+    return cardAValue - cardBValue;
+  }
+
+  compareHand(otherHand: Hand, part: Part): number {
     if (this.type === undefined || otherHand.type === undefined) {
       return this.type || otherHand.type || 0;
     }
@@ -86,10 +128,7 @@ class Hand {
     for (let i = 0; i < HAND_LENGTH; i++) {
       if (this.cards[i] === otherHand.cards[i]) continue;
 
-      const cardAValue = cardValues.get(this.cards[i]) ?? +this.cards[i];
-      const cardBValue =
-        cardValues.get(otherHand.cards[i]) ?? +otherHand.cards[i];
-      return cardAValue - cardBValue;
+      return this.compareCards(this.cards[i], otherHand.cards[i], part);
     }
 
     return 0;
@@ -109,13 +148,24 @@ const hands: Hand[] = fs
     });
   });
 
-hands.sort((handA, handB) => handA.compareHand(handB));
+hands.sort((handA, handB) => handA.compareHand(handB, Part.ONE));
+hands.forEach((hand, i) => (hand.rank = i + 1));
+
+console.log(
+  `Day 7 part 1 : total winnings = ${hands.reduce(
+    (total, hand) => total + hand.bid * hand.rank,
+    0
+  )}`
+);
+
+hands.forEach((hand, i) => hand.defineHandType(Part.TWO));
+hands.sort((handA, handB) => handA.compareHand(handB, Part.TWO));
 hands.forEach((hand, i) => {
   hand.rank = i + 1;
 });
 
 console.log(
-  `Day 7 part 1 : total winnings = ${hands.reduce(
+  `Day 7 part 2 : total winnings = ${hands.reduce(
     (total, hand) => total + hand.bid * hand.rank,
     0
   )}`
