@@ -28,26 +28,28 @@ const getAllValuesDifferences: (valueHistory: number[]) => number[][] = (
   return allDifferences;
 };
 
-const predictNextValue: (valueHistory: number[]) => number = (
-  valueHistory: number[]
+// PART 1
+
+const predictNextValue: (differences: number[][]) => number = (
+  differences: number[][]
 ) => {
-  const differences = getAllValuesDifferences(valueHistory).reverse();
-  const lastValues = differences.map(
+  const endValues = differences.map(
     (differences) => differences[differences.length - 1]
   );
+  const calculatedEndValues: number[] = new Array(endValues.length).fill(0);
 
-  const calculatedEndValues: number[] = new Array(lastValues.length).fill(0);
+  endValues.forEach((_, i) => {
+    if (i === 0) return (calculatedEndValues[0] = endValues[0]);
 
-  lastValues.forEach((_, i) => {
-    if (i === 0) return (calculatedEndValues[0] = lastValues[0]);
-
-    calculatedEndValues[i] = calculatedEndValues[i - 1] + lastValues[i];
+    calculatedEndValues[i] = calculatedEndValues[i - 1] + endValues[i];
   });
 
   return calculatedEndValues[calculatedEndValues.length - 1];
 };
 
-const predictedValues = valuesHistories.map(predictNextValue);
+const differences = valuesHistories.map(getAllValuesDifferences).reverse();
+
+const predictedValues = differences.map(predictNextValue);
 console.log(
   `Day 9 part 1 : sum of predicted values = ${predictedValues.reduce(
     (sum, value) => sum + value
