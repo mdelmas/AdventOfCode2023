@@ -62,7 +62,6 @@ const tilesDirections: {
     out: [Directions.UP, Directions.RIGHT, Directions.DOWN, Directions.LEFT],
   }, // is the starting position of the animal
 };
-console.log(tilesDirections);
 
 // PROCESS INPUT
 const mode = process.argv[2];
@@ -71,7 +70,6 @@ const grid = fs
   .readFileSync(`./${file}`, "utf-8")
   .split("\n")
   .map((line) => line.split(""));
-console.log(grid);
 
 const findStartCoord = () => {
   for (const [y, line] of grid.entries()) {
@@ -111,7 +109,6 @@ const getCoordInDirection = (coord: Coord, direction: Directions) => {
 const findPossibleCoord = (coord: Coord) => {
   const currentTile = grid[coord.y][coord.x];
   grid[coord.y][coord.x] = Tile.VISITED;
-  console.log(currentTile, tilesDirections[currentTile]);
 
   for (const direction of tilesDirections[currentTile].out) {
     const nextCoord = getCoordInDirection(coord, direction);
@@ -119,34 +116,20 @@ const findPossibleCoord = (coord: Coord) => {
       continue;
     }
 
-    console.log(`${direction}, tile = ${grid[nextCoord.y][nextCoord.x]} :)`);
-
     if (
       tilesDirections[grid[nextCoord.y][nextCoord.x]]!.in.includes(direction)
     ) {
       steps++;
-      console.log(
-        `You can get in direction ${direction}, tile = ${
-          grid[nextCoord.y][nextCoord.x]
-        } :)`
-      );
-
       return nextCoord;
     }
   }
   return undefined;
 };
 
-let coord = findStartCoord();
-console.log(coord);
-// console.log(findPossibleCoords(start));
-console.log(grid);
-
 let steps = 0;
-
+let coord = findStartCoord();
 while (coord) {
   coord = findPossibleCoord(coord!);
-  console.log(steps);
 }
 
-console.log(Math.floor((steps + 1) / 2));
+console.log(`Day 10 part 1 : ${Math.floor((steps + 1) / 2)}`);
