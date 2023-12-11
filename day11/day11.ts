@@ -1,26 +1,64 @@
 import { log } from "console";
 import * as fs from "fs";
 
+const GALAXY_CHAR = "#";
+const CELL_CHAR = ".";
+
+let factor = 1000000; // 1000000;
 class Coord {
   y: number;
-
   x: number;
 
   constructor(y: number, x: number) {
     this.y = y;
     this.x = x;
   }
+
+  updateX(x: number) {
+    this.x = x;
+  }
+
+  updateY(y: number) {
+    this.y = y;
+  }
+}
+class CellDimension {
+  width: number;
+  height: number;
+
+  constructor(width: number, height: number) {
+    this.width = width;
+    this.height = height;
+  }
+
+  expandWidth() {
+    this.width = factor;
+  }
+  expandHeight() {
+    this.height = factor;
+  }
 }
 
-class Galaxy {
-  static CHAR = "#";
+class Cell {
+  char = CELL_CHAR;
+
+  coord: Coord;
+  dimension: CellDimension;
+
+  constructor(y: number, x: number, width: number = 1, height: number = 1) {
+    this.coord = new Coord(y, x);
+    this.dimension = new CellDimension(width, height);
+  }
+}
+
+class Galaxy extends Cell {
+  char = GALAXY_CHAR;
 
   id: number;
-  coord: Coord;
 
   constructor(id: number, y: number, x: number) {
+    super(y, x);
     this.id = id;
-    this.coord = new Coord(y, x);
   }
 
   distance = (otherGalaxy: Galaxy) =>
@@ -29,28 +67,45 @@ class Galaxy {
 }
 
 class Grid {
-  grid: string[][] = [];
+  grid: Cell[][] = [];
   galaxies: Map<number, Galaxy> = new Map();
   distances: number[] = [];
 
   constructor(input: string) {
-    this.grid = input.split("\n").map((line) => line.split(""));
+    this.grid = input.split("\n").map((line, y) =>
+      line.split("").map((cell, x) => {
+        if (cell === GALAXY_CHAR) {
+          let galaxy = new Galaxy(this.galaxies.size + 1, y, x);
+          this.galaxies.set(this.galaxies.size + 1, galaxy);
+          return galaxy;
+        }
+        return new Cell(y, x);
+      })
+    );
 
-    // expand lines
+    // expand lines + columns
     this.expand();
-    // expand columns
-    this.reverse();
-    this.expand();
-    // then back to initial order
-    this.reverse();
-
-    this.defineGalaxies();
+    // recalculate coordinates
+    this.recalculateCoordinates();
   }
 
   print() {
     for (const [y, line] of this.grid.entries()) {
       for (const [x, cell] of line.entries()) {
-        process.stdout.write(cell);
+        if (
+          !(this.grid[y][x] instanceof Galaxy) &&
+          cell.dimension.width > 1 &&
+          cell.dimension.height > 1
+        ) {
+          process.stdout.write("*");
+        } else if (
+          !(this.grid[y][x] instanceof Galaxy) &&
+          (cell.dimension.width > 1 || cell.dimension.height > 1)
+        ) {
+          process.stdout.write("x");
+        } else {
+          process.stdout.write(cell.char);
+        }
       }
       process.stdout.write("\n");
     }
@@ -58,9 +113,9 @@ class Grid {
   }
 
   reverse() {
-    const reversedGrid: string[][] = [];
+    const reversedGrid: Cell[][] = [];
     for (let y = 0; y < this.grid[0].length; y++) {
-      let column: string[] = [];
+      let column: Cell[] = [];
       for (let x = 0; x < this.grid.length; x++) {
         column.push(this.grid[x][y]);
       }
@@ -70,32 +125,57 @@ class Grid {
   }
 
   expand() {
-    const expandedGrid: string[][] = [];
+    this.grid.forEach((_, y) => {
+      let hasGalaxy = false;
+      this.grid[y].forEach((_, x) => {
+        hasGalaxy = this.grid[y][x] instanceof Galaxy || hasGalaxy;
+      });
 
-    this.grid.forEach((line) => {
-      if (!line.includes(Galaxy.CHAR)) {
-        expandedGrid.push(line);
+      if (!hasGalaxy) {
+        this.grid[y].forEach((_, x) => {
+          this.grid[y][x].dimension.expandHeight();
+        });
       }
-      expandedGrid.push(line);
     });
 
-    this.grid = expandedGrid;
+    this.grid[0].forEach((_, x) => {
+      let hasGalaxy = false;
+      this.grid.forEach((_, y) => {
+        hasGalaxy = this.grid[y][x] instanceof Galaxy || hasGalaxy;
+      });
+
+      if (!hasGalaxy) {
+        this.grid.forEach((_, y) => {
+          this.grid[y][x].dimension.expandWidth();
+        });
+      }
+    });
   }
 
-  defineGalaxies() {
+  recalculateCoordinates() {
     this.grid.forEach((_, y) => {
+      let distanceFromStart = 0;
       this.grid[y].forEach((_, x) => {
-        if (this.grid[y][x] === Galaxy.CHAR) {
-          this.galaxies.set(
-            this.galaxies.size + 1,
-            new Galaxy(this.galaxies.size + 1, y, x)
-          );
+        if (this.grid[y][x] instanceof Galaxy) {
+          this.grid[y][x].coord.updateX(distanceFromStart);
         }
+        distanceFromStart += this.grid[y][x].dimension.width;
+      });
+    });
+
+    this.grid[0].forEach((_, x) => {
+      let distanceFromTop = 0;
+      this.grid.forEach((_, y) => {
+        if (this.grid[y][x] instanceof Galaxy) {
+          this.grid[y][x].coord.updateY(distanceFromTop);
+        }
+        distanceFromTop += this.grid[y][x].dimension.height;
       });
     });
   }
 
   calculateDistances() {
+    this.distances = [];
     for (let i = 1; i < this.galaxies.size; i++) {
       const galaxy = this.galaxies.get(i)!;
       for (let j = i + 1; j <= this.galaxies.size; j++) {
@@ -113,7 +193,7 @@ const grid = new Grid(input);
 
 grid.calculateDistances();
 console.log(
-  `Day 11 part 1 : sume of distances ${grid.distances.reduce(
+  `Day 11 part 2 : sume of distances ${grid.distances.reduce(
     (sum, distance) => sum + distance,
     0
   )}`
