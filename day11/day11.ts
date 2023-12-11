@@ -79,6 +79,7 @@ class Grid {
           this.galaxies.set(this.galaxies.size + 1, galaxy);
           return galaxy;
         }
+
         return new Cell(y, x);
       })
     );
@@ -114,19 +115,25 @@ class Grid {
 
   reverse() {
     const reversedGrid: Cell[][] = [];
+
     for (let y = 0; y < this.grid[0].length; y++) {
       let column: Cell[] = [];
+
       for (let x = 0; x < this.grid.length; x++) {
         column.push(this.grid[x][y]);
       }
+
       reversedGrid.push(column);
     }
+
     this.grid = reversedGrid;
   }
 
   expand() {
+    // expand lines
     this.grid.forEach((_, y) => {
       let hasGalaxy = false;
+
       this.grid[y].forEach((_, x) => {
         hasGalaxy = this.grid[y][x] instanceof Galaxy || hasGalaxy;
       });
@@ -138,8 +145,10 @@ class Grid {
       }
     });
 
+    // expand columns
     this.grid[0].forEach((_, x) => {
       let hasGalaxy = false;
+
       this.grid.forEach((_, y) => {
         hasGalaxy = this.grid[y][x] instanceof Galaxy || hasGalaxy;
       });
@@ -153,22 +162,27 @@ class Grid {
   }
 
   recalculateCoordinates() {
+    // recalculate for lines
     this.grid.forEach((_, y) => {
       let distanceFromStart = 0;
+
       this.grid[y].forEach((_, x) => {
         if (this.grid[y][x] instanceof Galaxy) {
           this.grid[y][x].coord.updateX(distanceFromStart);
         }
+
         distanceFromStart += this.grid[y][x].dimension.width;
       });
     });
 
+    // recalculate for columns
     this.grid[0].forEach((_, x) => {
       let distanceFromTop = 0;
       this.grid.forEach((_, y) => {
         if (this.grid[y][x] instanceof Galaxy) {
           this.grid[y][x].coord.updateY(distanceFromTop);
         }
+
         distanceFromTop += this.grid[y][x].dimension.height;
       });
     });
@@ -176,8 +190,10 @@ class Grid {
 
   calculateDistances() {
     this.distances = [];
+
     for (let i = 1; i < this.galaxies.size; i++) {
       const galaxy = this.galaxies.get(i)!;
+
       for (let j = i + 1; j <= this.galaxies.size; j++) {
         const otherGalaxy = this.galaxies.get(j)!;
         this.distances.push(galaxy.distance(otherGalaxy));
