@@ -20,17 +20,21 @@ class Grid {
     this.content = content;
   }
 
-  findReflection() {
+  findAllReflections() {
     this.reflection = undefined;
 
-    this.findHorizontalReflection();
+    this.findReflection(ReflectionType.HORIZONTAL);
 
     if (!this.reflection) {
-      this.findVerticalReflection();
+      this.findReflection(ReflectionType.VERTICAL);
     }
   }
 
-  getColumnAt(index: number) {
+  getLine(index: number, type: ReflectionType) {
+    if (type === ReflectionType.HORIZONTAL) {
+      return this.content[index];
+    }
+
     const column: string[] = [];
     for (let i = 0; i < this.content.length; i++) {
       column.push(this.content[i][index]);
@@ -48,16 +52,20 @@ class Grid {
     return differences;
   }
 
-  checkHorizontalReflectionAt(line: number) {
-    let height = Math.min(line, this.content.length - line);
+  checkReflection(line: number, type: ReflectionType) {
+    let maxLength =
+      type === ReflectionType.HORIZONTAL
+        ? this.content.length
+        : this.content[0].length;
+    let range = Math.min(line, maxLength - line);
 
     let difference = 0;
-    for (let i = 0; i < height; i++) {
-      if (this.content[line - 1 - i] !== this.content[line + i]) {
-        difference += this.countDifferences(
-          this.content[line - 1 - i],
-          this.content[line + i]
-        );
+    for (let i = 0; i < range; i++) {
+      const firstLine = this.getLine(line - 1 - i, type);
+      const secondLine = this.getLine(line + i, type);
+
+      if (firstLine !== secondLine) {
+        difference += this.countDifferences(firstLine, secondLine);
 
         if (difference > MAX_DIFFERENCES) {
           break;
@@ -68,45 +76,15 @@ class Grid {
     return difference === MAX_DIFFERENCES;
   }
 
-  findHorizontalReflection() {
-    for (let line = 1; line < this.content.length; line++) {
-      if (this.checkHorizontalReflectionAt(line)) {
-        this.reflection = {
-          type: ReflectionType.HORIZONTAL,
-          index: line,
-        };
-        break;
-      }
-    }
-  }
+  findReflection(type: ReflectionType) {
+    let range =
+      type === ReflectionType.HORIZONTAL
+        ? this.content.length
+        : this.content[0].length;
 
-  checkVerticalReflectionAt(column: number) {
-    let width = Math.min(column, this.content[0].length - column);
-
-    let difference = 0;
-    for (let i = 0; i < width; i++) {
-      const firstColumn = this.getColumnAt(column - 1 - i);
-      const secondColumn = this.getColumnAt(column + i);
-
-      if (firstColumn !== secondColumn) {
-        difference += this.countDifferences(firstColumn, secondColumn);
-
-        if (difference > MAX_DIFFERENCES) {
-          break;
-        }
-      }
-    }
-
-    return difference === MAX_DIFFERENCES;
-  }
-
-  findVerticalReflection() {
-    for (let column = 1; column < this.content[0].length; column++) {
-      if (this.checkVerticalReflectionAt(column)) {
-        this.reflection = {
-          type: ReflectionType.VERTICAL,
-          index: column,
-        };
+    for (let index = 1; index < range; index++) {
+      if (this.checkReflection(index, type)) {
+        this.reflection = { type, index };
         break;
       }
     }
@@ -122,7 +100,7 @@ const grids = fs
   .map((grid) => new Grid(grid.split("\n")));
 
 // PART 1
-grids.forEach((grid) => grid.findReflection());
+grids.forEach((grid) => grid.findAllReflections());
 console.log(
   `Day 13 part 1 : summary of patterns ${grids.reduce(
     (sum: number, grid: Grid) =>
@@ -136,7 +114,7 @@ console.log(
 
 // PART 2
 MAX_DIFFERENCES = 1;
-grids.forEach((grid) => grid.findReflection());
+grids.forEach((grid) => grid.findAllReflections());
 console.log(
   `Day 13 part 2 : summary of patterns ${grids.reduce(
     (sum: number, grid: Grid) =>
