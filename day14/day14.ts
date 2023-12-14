@@ -13,132 +13,156 @@ interface Coord {
   y: number;
 }
 
-const mode = process.argv[2];
-const file = mode === "-t" || mode === "--test" ? "test" : "input";
-const gridBase = fs
-  .readFileSync(`./${file}`, "utf-8")
-  .trim()
-  .split("\n")
-  .map((line) => line.split(""));
-let grid: string[][] = JSON.parse(JSON.stringify(gridBase));
+class Grid {
+  contentBase: string[][] = [];
+  content: string[][] = [];
 
-const printGrid = () => {
-  for (const [y, line] of grid.entries()) {
-    for (const [x, tile] of line.entries()) {
-      process.stdout.write(tile);
+  constructor(input: string) {
+    this.contentBase = input
+      .trim()
+      .split("\n")
+      .map((line) => line.split(""));
+
+    this.resetContent();
+  }
+
+  resetContent = () => {
+    this.content = JSON.parse(JSON.stringify(this.contentBase));
+  };
+
+  print = () => {
+    for (const [y, line] of this.content.entries()) {
+      for (const [x, tile] of line.entries()) {
+        process.stdout.write(tile);
+      }
+      process.stdout.write("\n");
     }
     process.stdout.write("\n");
-  }
-  process.stdout.write("\n");
-};
+  };
 
-const moveRocksNorth = (coord: Coord) => {
-  let y = coord.y;
+  // moving rocks functions
+  moveRocksNorth = (coord: Coord) => {
+    let y = coord.y;
 
-  while (y > 0 && grid[y - 1][coord.x] === Tile.EMPTY) {
-    y--;
-  }
+    while (y > 0 && this.content[y - 1][coord.x] === Tile.EMPTY) {
+      y--;
+    }
 
-  grid[coord.y][coord.x] = Tile.EMPTY;
-  grid[y][coord.x] = Tile.ROUND;
-};
+    this.content[coord.y][coord.x] = Tile.EMPTY;
+    this.content[y][coord.x] = Tile.ROUND;
+  };
 
-const moveRocksWest = (coord: Coord) => {
-  let x = coord.x;
+  moveRocksWest = (coord: Coord) => {
+    let x = coord.x;
 
-  while (x > 0 && grid[coord.y][x - 1] === Tile.EMPTY) {
-    x--;
-  }
+    while (x > 0 && this.content[coord.y][x - 1] === Tile.EMPTY) {
+      x--;
+    }
 
-  grid[coord.y][coord.x] = Tile.EMPTY;
-  grid[coord.y][x] = Tile.ROUND;
-};
+    this.content[coord.y][coord.x] = Tile.EMPTY;
+    this.content[coord.y][x] = Tile.ROUND;
+  };
 
-const moveRocksSouth = (coord: Coord) => {
-  let y = coord.y;
+  moveRocksSouth = (coord: Coord) => {
+    let y = coord.y;
 
-  while (y < grid.length - 1 && grid[y + 1][coord.x] === Tile.EMPTY) {
-    y++;
-  }
+    while (
+      y < this.content.length - 1 &&
+      this.content[y + 1][coord.x] === Tile.EMPTY
+    ) {
+      y++;
+    }
 
-  grid[coord.y][coord.x] = Tile.EMPTY;
-  grid[y][coord.x] = Tile.ROUND;
-};
+    this.content[coord.y][coord.x] = Tile.EMPTY;
+    this.content[y][coord.x] = Tile.ROUND;
+  };
 
-const moveRocksEast = (coord: Coord) => {
-  let x = coord.x;
+  moveRocksEast = (coord: Coord) => {
+    let x = coord.x;
 
-  while (x < grid[0].length - 1 && grid[coord.y][x + 1] === Tile.EMPTY) {
-    x++;
-  }
+    while (
+      x < this.content[0].length - 1 &&
+      this.content[coord.y][x + 1] === Tile.EMPTY
+    ) {
+      x++;
+    }
 
-  grid[coord.y][coord.x] = Tile.EMPTY;
-  grid[coord.y][x] = Tile.ROUND;
-};
+    this.content[coord.y][coord.x] = Tile.EMPTY;
+    this.content[coord.y][x] = Tile.ROUND;
+  };
 
-const goThroughSpinCycle = () => {
-  for (let y = 0; y < grid.length; y++) {
-    for (let x = 0; x < grid[0].length; x++) {
-      if (grid[y][x] === Tile.ROUND) {
-        moveRocksNorth({ x, y });
+  goThroughSpinCycle = () => {
+    // move rocks north
+    for (let y = 0; y < this.content.length; y++) {
+      for (let x = 0; x < this.content[0].length; x++) {
+        if (this.content[y][x] === Tile.ROUND) {
+          this.moveRocksNorth({ x, y });
+        }
       }
     }
-  }
 
-  for (let y = 0; y < grid.length; y++) {
-    for (let x = 0; x < grid[0].length; x++) {
-      if (grid[y][x] === Tile.ROUND) {
-        moveRocksWest({ x, y });
+    // than west
+    for (let y = 0; y < this.content.length; y++) {
+      for (let x = 0; x < this.content[0].length; x++) {
+        if (this.content[y][x] === Tile.ROUND) {
+          this.moveRocksWest({ x, y });
+        }
       }
     }
-  }
 
-  for (let y = grid.length - 1; y >= 0; y--) {
-    for (let x = 0; x < grid[0].length; x++) {
-      if (grid[y][x] === Tile.ROUND) {
-        moveRocksSouth({ x, y });
+    // than south
+    for (let y = this.content.length - 1; y >= 0; y--) {
+      for (let x = 0; x < this.content[0].length; x++) {
+        if (this.content[y][x] === Tile.ROUND) {
+          this.moveRocksSouth({ x, y });
+        }
       }
     }
-  }
 
-  for (let y = 0; y < grid.length; y++) {
-    for (let x = grid[0].length - 1; x >= 0; x--) {
-      if (grid[y][x] === Tile.ROUND) {
-        moveRocksEast({ x, y });
+    // and finally east
+    for (let y = 0; y < this.content.length; y++) {
+      for (let x = this.content[0].length - 1; x >= 0; x--) {
+        if (this.content[y][x] === Tile.ROUND) {
+          this.moveRocksEast({ x, y });
+        }
       }
     }
-  }
-};
+  };
 
-const calculateWeight = () => {
-  let weight = grid.length;
+  calculateWeights = () => {
+    let weight = this.content.length;
 
-  let sumOfWeights = 0;
+    let sumOfWeights = 0;
 
-  grid.forEach((line) => {
-    let countRocks =
-      line.join("").match(new RegExp(Tile.ROUND, "g"))?.length || 0;
-    sumOfWeights += weight * countRocks;
-    weight--;
-  });
+    this.content.forEach((line) => {
+      let countRocks =
+        line.join("").match(new RegExp(Tile.ROUND, "g"))?.length || 0;
+      sumOfWeights += weight * countRocks;
+      weight--;
+    });
 
-  return sumOfWeights;
-};
+    return sumOfWeights;
+  };
+}
+
+const mode = process.argv[2];
+const file = mode === "-t" || mode === "--test" ? "test" : "input";
+const grid = new Grid(fs.readFileSync(`./${file}`, "utf-8"));
 
 // PART 1
-for (let y = 0; y < grid.length; y++) {
-  for (let x = 0; x < grid[0].length; x++) {
-    if (grid[y][x] === Tile.ROUND) {
-      moveRocksNorth({ x, y });
+for (let y = 0; y < grid.content.length; y++) {
+  for (let x = 0; x < grid.content[0].length; x++) {
+    if (grid.content[y][x] === Tile.ROUND) {
+      grid.moveRocksNorth({ x, y });
     }
   }
 }
-console.log(`Day 14 part 1 : sum of weight = ${calculateWeight()}`);
+console.log(`Day 14 part 1 : sum of weight = ${grid.calculateWeights()}`);
 
 // PART 2
-grid = JSON.parse(JSON.stringify(gridBase));
+grid.resetContent();
 
 for (let i = 0; i < CYCLES; i++) {
-  goThroughSpinCycle();
+  grid.goThroughSpinCycle();
 }
-console.log(`Day 14 part 2 : sum of weight = ${calculateWeight()}`);
+console.log(`Day 14 part 2 : sum of weight = ${grid.calculateWeights()}`);
