@@ -9,64 +9,113 @@ enum PipeState {
 class Row {
   row: string;
   groups: number[];
-  possibleCombinations: string[] = [];
+
+  numberPossibleCombinations: number = 0;
+  numberPossibleCombinationsX5: number = 0;
 
   constructor({ row, groups }: { row: string; groups: number[] }) {
     this.row = row;
     this.groups = groups;
 
     if (row.includes(PipeState.UNKNOWN)) {
-      this.possibleCombinations = this.generateRowCombination().filter((row) =>
-        this.checkRowValidity(row)
+      this.numberPossibleCombinations = this.generateRowCombination();
+
+      this.numberPossibleCombinationsX5 = this.generateRowCombination(
+        row + "?" + row + "?" + row + "?" + row + "?" + row,
+        this.groups
+          .concat(this.groups)
+          .concat(this.groups)
+          .concat(this.groups)
+          .concat(this.groups)
       );
     }
   }
 
-  generateRowCombination(replacedRow: string = this.row): string[] {
-    let combinations: string[] = [];
-
-    if (replacedRow.length === 1) {
-      if (replacedRow === PipeState.UNKNOWN) {
-        combinations.push(PipeState.DAMAGED);
-        combinations.push(PipeState.OPERATIONAL);
-        return combinations;
-      }
-      combinations.push(replacedRow);
-      return combinations;
+  // Caching system
+  cache: Map<string, number> = new Map();
+  cachedGenerateRowCombination(row: string, groups: number[]): number {
+    if (this.cache.has(`${row}(${[groups]})`)) {
+      return this.cache.get(`${row}(${[groups]})`)!;
     }
 
-    const firstChar = replacedRow[0];
-    const restOfRow = replacedRow.substring(1) ?? "";
-    var otherCombinations = this.generateRowCombination(restOfRow);
-
-    if (firstChar === PipeState.UNKNOWN) {
-      otherCombinations.forEach((combination) => {
-        combinations.push(PipeState.DAMAGED + combination);
-        combinations.push(PipeState.OPERATIONAL + combination);
-      });
-    } else {
-      otherCombinations.forEach((combination) => {
-        combinations.push(firstChar + combination);
-      });
-    }
-    return combinations;
+    let result = this.generateRowCombination(row, groups);
+    this.cache.set(`${row}(${[groups]})`, result);
+    return result;
   }
 
-  checkRowValidity(row: string = this.row) {
-    let damagedSpringsGroups = [...row.matchAll(/(#+)/g)].map(
-      (match) => match[0]
-    );
-
-    if (damagedSpringsGroups.length !== this.groups.length) {
-      return false;
+  generateRowCombination(row = this.row, groups = this.groups): number {
+    // HANDLE BASE CASE
+    if (groups.length === 0 && row.length === 0) {
+      return 1;
     }
 
-    for (let i = 0; i < damagedSpringsGroups.length; i++) {
-      if (damagedSpringsGroups[i].length !== this.groups[i]) {
-        return false;
+    // row.length !== 0
+    if (groups.length === 0) {
+      if (row.includes("#")) {
+        return 0;
       }
+      return 1;
     }
-    return true;
+
+    // groups.length !== 0
+    if (row.length === 0) {
+      return 0;
+    }
+
+    // HANDLE COMPLEX CASE
+    const firstChar = row[0];
+    const firstGroup = groups[0];
+
+    const handleDamagedPipe = () => {
+      const potentialGroup = row.substring(0, firstGroup).replaceAll("?", "#");
+
+      if (potentialGroup !== PipeState.DAMAGED.repeat(firstGroup)) {
+        return 0;
+      }
+
+      if (row.length === firstGroup) {
+        if (groups.length === 1) {
+          return 1;
+        }
+        return 0;
+      }
+
+      if (
+        row[firstGroup] === PipeState.OPERATIONAL ||
+        row[firstGroup] === PipeState.UNKNOWN
+      ) {
+        return this.generateRowCombination(
+          row.substring(firstGroup + 1),
+          groups.slice(1)
+        );
+      }
+
+      return 0;
+    };
+
+    let combinations = 0;
+
+    // firstChar === "."
+    if (firstChar === PipeState.OPERATIONAL) {
+      combinations = this.cachedGenerateRowCombination(
+        row.substring(1),
+        groups
+      );
+    }
+
+    // firstChar === "?"
+    if (firstChar === PipeState.UNKNOWN) {
+      combinations =
+        this.cachedGenerateRowCombination("#" + row.substring(1), groups) +
+        this.cachedGenerateRowCombination("." + row.substring(1), groups);
+    }
+
+    // firstChar === "#"
+    if (firstChar === PipeState.DAMAGED) {
+      combinations = handleDamagedPipe();
+    }
+
+    return combinations;
   }
 }
 
@@ -87,7 +136,16 @@ const rows = fs
 console.log(
   `Day 12 part 1 : sum of all possible combinations ${rows.reduce(
     (sum: number, currentRow: Row) => {
-      return sum + currentRow.possibleCombinations.length;
+      return sum + currentRow.numberPossibleCombinations;
+    },
+    0
+  )}`
+);
+
+console.log(
+  `Day 12 part 2 : sum of all possible combinations with row x5 ${rows.reduce(
+    (sum: number, currentRow: Row) => {
+      return sum + currentRow.numberPossibleCombinationsX5;
     },
     0
   )}`
