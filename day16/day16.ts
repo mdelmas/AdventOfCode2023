@@ -39,7 +39,7 @@ class Beam {
 
 class Game {
   grid: string[][];
-  visited: Direction[][][];
+  visited: Direction[][][] = [];
   beams: Beam[] = [];
 
   constructor(input: string) {
@@ -48,10 +48,14 @@ class Game {
       .split("\n")
       .map((line) => line.split(""));
 
+    this.initializeVisitedGrid();
+  }
+
+  initializeVisitedGrid = () => {
     this.visited = [...Array(this.grid.length)].map(() =>
       [...Array(this.grid[0].length)].map(() => [])
     );
-  }
+  };
 
   printGrid = (grid: string[][] = this.grid) => {
     process.stdout.write(
@@ -173,15 +177,21 @@ class Game {
     return this.calculateNextPosStraight(beam);
   };
 
-  calculateBeamsTrajectories = () => {
+  calculateBeamsTrajectories = (
+    coord: Coord = { x: 0, y: 0 },
+    direction: Direction = Direction.RIGHT
+  ) => {
+    this.beams = [];
+    this.initializeVisitedGrid();
+
+    this.beams.push(new Beam({ coord, direction }));
+
     while (this.beams.length > 0) {
       let beam = this.beams.shift()!;
 
       while (this.calculateNextPos(beam)) {}
     }
-  };
 
-  countEnergizedCells = () => {
     let count = 0;
     for (const [y, line] of this.visited.entries()) {
       for (const [x, tile] of line.entries()) {
@@ -198,8 +208,33 @@ const mode = process.argv[2];
 const file = mode === "-t" || mode === "--test" ? "test" : "input";
 const game = new Game(fs.readFileSync(`./${file}`, "utf-8"));
 
-game.beams.push(new Beam({ coord: { x: 0, y: 0 } }));
-game.calculateBeamsTrajectories();
+// PART 1
 console.log(
-  `Day 16 part 1 : count of energized cells = ${game.countEnergizedCells()}`
+  `Day 16 part 1 : count of energized cells = ${game.calculateBeamsTrajectories()}`
 );
+
+// PART 2
+let maxCount = 0;
+
+for (const [y] of game.grid.entries()) {
+  let count = game.calculateBeamsTrajectories({ x: 0, y }, Direction.RIGHT);
+  maxCount = Math.max(count, maxCount);
+
+  count = game.calculateBeamsTrajectories(
+    { x: game.grid[0].length - 1, y },
+    Direction.LEFT
+  );
+  maxCount = Math.max(count, maxCount);
+}
+
+for (const [x] of game.grid[0].entries()) {
+  let count = game.calculateBeamsTrajectories({ x, y: 0 }, Direction.DOWN);
+  maxCount = Math.max(count, maxCount);
+
+  count = game.calculateBeamsTrajectories(
+    { x, y: game.grid.length - 1 },
+    Direction.UP
+  );
+  maxCount = Math.max(count, maxCount);
+}
+console.log(`Day 16 part 2 : max count of energized cells = ${maxCount}`);
