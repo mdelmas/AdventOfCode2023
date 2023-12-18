@@ -6,17 +6,18 @@ enum Direction {
   DOWN = "D",
   LEFT = "L",
 }
-
+const directionsMapping: Map<string, string> = new Map([
+  ["0", "R"],
+  ["1", "D"],
+  ["2", "L"],
+  ["3", "U"],
+]);
 class Point {
   constructor(public x: number, public y: number) {}
 }
 
 class Segment {
-  constructor(
-    public direction: Direction,
-    public steps: number,
-    public color: string
-  ) {}
+  constructor(public direction: Direction, public steps: number) {}
 }
 
 class Shape {
@@ -69,15 +70,26 @@ class Shape {
 
 const mode = process.argv[2];
 const file = mode === "-t" || mode === "--test" ? "test" : "input";
-const segments = fs
-  .readFileSync(`./${file}`, "utf-8")
-  .trim()
-  .split("\n")
-  .map((line) => {
-    let [direction, steps, color] = line.split(" ");
-    color = color.replace("(", "").replace(")", "");
-    return new Segment(direction as Direction, +steps, color);
-  });
+const input = fs.readFileSync(`./${file}`, "utf-8").trim().split("\n");
+
+// PART 1
+const segments = input.map((line) => {
+  let [direction, steps] = line.split(" ");
+  return new Segment(direction as Direction, +steps);
+});
 
 let shape = new Shape(segments);
 console.log(`Day 18 part 1 : area = ${shape.calculateArea()}`);
+
+// PART 2
+const segmentsP2 = input.map((line) => {
+  let [, , color] = line.split(" ");
+  color = color.replace("(", "").replace(")", "").replace("#", "");
+
+  let steps = parseInt(color.slice(0, -1), 16);
+  let direction = directionsMapping.get(color.slice(-1))! as Direction;
+
+  return new Segment(direction, steps);
+});
+let shapeP2 = new Shape(segmentsP2);
+console.log(`Day 18 part 2 : area = ${shapeP2.calculateArea()}`);
