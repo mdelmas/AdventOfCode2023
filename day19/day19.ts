@@ -71,16 +71,9 @@ const parts = rawParts.map((rawPart) => {
   return part;
 });
 
-const handleEndOutcome = (part: Part, step: Step) => {
-  if (step.outcome === "A") {
-    part.accepted = true;
-  }
-
-  return undefined;
-};
-
 parts.forEach((part) => {
   let rule = workflows.get("in");
+
   if (!rule) {
     return;
   }
@@ -89,7 +82,10 @@ parts.forEach((part) => {
     for (let step of rule) {
       if (!step.condition) {
         if (step.outcome === "A" || step.outcome === "R") {
-          handleEndOutcome(part, step);
+          if (step.outcome === "A") {
+            part.accepted = true;
+          }
+
           rule = undefined;
           break;
         }
@@ -100,7 +96,10 @@ parts.forEach((part) => {
 
       if (step.condition(part)) {
         if (step.outcome === "A" || step.outcome === "R") {
-          handleEndOutcome(part, step);
+          if (step.outcome === "A") {
+            part.accepted = true;
+          }
+
           rule = undefined;
           break;
         }
@@ -109,9 +108,6 @@ parts.forEach((part) => {
         break;
       }
     }
-
-    // rule!.forEach((step) => {
-    // });
   }
 });
 
